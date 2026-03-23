@@ -261,18 +261,25 @@ app.post("/auth/foto-perfil", auth, uploadFotos.single("foto"), async (req, res)
 ══════════════════════════════════════ */
 
 /* POST /anuncios/fotos — faz upload das fotos e retorna URLs */
-
 app.post("/anuncios/fotos", auth, (req, res) => {
-  uploadFotos.array("fotos", 10)(req, res, (err) => {
+  uploadFotos.array("fotos", 10)(req, res, async (err) => {
     if (err) {
-      console.error('ERRO CLOUDINARY:', JSON.stringify(err, Object.getOwnPropertyNames(err)));
-      return res.status(500).json({ erro: err.message || JSON.stringify(err) });
+      const msg = err.message || err.http_code || JSON.stringify(err, Object.getOwnPropertyNames(err));
+      console.error('ERRO UPLOAD FOTOS:', msg);
+      return res.status(500).json({ erro: 'Erro no upload: ' + msg });
     }
     try {
-      const fotos = (req.files || []).map(f => ({ url: f.path, publicId: f.filename }));
+      if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ erro: 'Nenhum arquivo enviado' });
+      }
+      console.log('Fotos recebidas:', req.files.length);
+      const fotos = req.files.map(f => {
+        console.log('Arquivo:', f.path, f.filename);
+        return { url: f.path, publicId: f.filename };
+      });
       res.json({ fotos });
     } catch (e) {
-      console.error('ERRO FOTOS:', e.message);
+      console.error('ERRO PROCESSAR FOTOS:', e.message);
       res.status(500).json({ erro: e.message });
     }
   });
@@ -498,7 +505,7 @@ io.use((socket, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     socket.userId = decoded.id;
     next();
-  } catch {
+  } catch (e) {
     next(new Error("Token inválido"));
   }
 });
