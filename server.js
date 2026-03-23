@@ -261,21 +261,19 @@ app.post("/auth/foto-perfil", auth, uploadFotos.single("foto"), async (req, res)
 ══════════════════════════════════════ */
 
 /* POST /anuncios/fotos — faz upload das fotos e retorna URLs */
-app.post("/anuncios/fotos", auth, (req, res, next) => {
+
+app.post("/anuncios/fotos", auth, (req, res) => {
   uploadFotos.array("fotos", 10)(req, res, (err) => {
     if (err) {
-      console.error('Erro multer fotos:', JSON.stringify(err));
-      return res.status(500).json({ erro: 'Erro no upload: ' + (err.message || JSON.stringify(err)) });
+      console.error('ERRO CLOUDINARY:', JSON.stringify(err, Object.getOwnPropertyNames(err)));
+      return res.status(500).json({ erro: err.message || JSON.stringify(err) });
     }
     try {
-      if (!req.files || req.files.length === 0) {
-        return res.status(400).json({ erro: 'Nenhum arquivo enviado' });
-      }
-      const fotos = req.files.map(f => ({ url: f.path, publicId: f.filename }));
+      const fotos = (req.files || []).map(f => ({ url: f.path, publicId: f.filename }));
       res.json({ fotos });
-    } catch (err2) {
-      console.error('Erro upload fotos:', JSON.stringify(err2));
-      res.status(500).json({ erro: 'Erro ao processar fotos: ' + (err2.message || JSON.stringify(err2)) });
+    } catch (e) {
+      console.error('ERRO FOTOS:', e.message);
+      res.status(500).json({ erro: e.message });
     }
   });
 });
